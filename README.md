@@ -1,30 +1,30 @@
 # md-libs
 
-Общее ядро для конвертеров markdown: парсинг, фильтрация по заголовкам, страничный пайплайн и контракт рендеринга. Используется в [md-docx](https://github.com/dimkarp93/md-docx) и [md-pdf](https://github.com/dimkarp93/md-pdf).
+Shared core for markdown converters: parsing, heading-based filtering, the page pipeline and the rendering contract. Used by [md-docx](https://github.com/dimkarp93/md-docx) and [md-pdf](https://github.com/dimkarp93/md-pdf).
 
-Библиотека не тянет внешних зависимостей и не содержит конкретных бэкендов вывода — их реализуют потребители.
+The library has no external dependencies and contains no concrete output backends — those are implemented by its consumers.
 
-## Установка
+## Installation
 
 ```sh
 go get github.com/dimkarp93/md-libs
 ```
 
-## Пакеты
+## Packages
 
-### `mdlib` — пайплайн
+### `mdlib` — the pipeline
 
-Полный путь от исходного markdown до отфильтрованного списка блоков.
+The full path from raw markdown to a filtered list of blocks.
 
 ```go
 blocks, err := mdlib.Prepare(src, mdlib.Options{
-    Pages:            "1,3-5", // пусто — все страницы, кроме нулевой
+    Pages:            "1,3-5", // empty — every page except page zero
     Heads:            "h2:result,h3:resume",
     HideMatchedHeads: true,
 })
 ```
 
-### `markdown` — парсинг
+### `markdown` — parsing
 
 ```go
 type Block struct {
@@ -41,18 +41,18 @@ func SplitPages(src string) []string
 func ParsePageRanges(spec string) ([]int, error)
 ```
 
-Документ делится на страницы по строкам `---` (внутри код-фенса разделитель игнорируется). Если файл начинается с закрытого блока `---...---`, его содержимое становится **нулевой страницей** (front matter) и по умолчанию в вывод не попадает.
+A document is split into pages on `---` lines (a separator inside a code fence is ignored). If the file starts with a closed `---...---` block, its contents become **page zero** (front matter) and are excluded from the output by default.
 
-### `filter` — отбор по заголовкам
+### `filter` — selecting by headings
 
 ```go
 filters, err := filter.ParseHeads("h2:result,resume")
 blocks = filter.ByHeads(blocks, filters, hideMatched)
 ```
 
-Спецификация `h<N>:<имя>` привязывает фильтр к уровню заголовка; голое имя матчит любой уровень. Сравнение регистронезависимое и по «чистому» тексту, поэтому `**Result**` матчится фильтром `h2:result`. В вывод попадает заголовок и всё его содержимое до следующего заголовка того же или более высокого уровня. `hideMatched` убирает сам заголовок, оставляя содержимое.
+The `h<N>:<name>` spec binds a filter to a heading level; a bare name matches any level. Matching is case-insensitive and done against the "plain" text, so `**Result**` is matched by the `h2:result` filter. The output keeps the heading and all of its content up to the next heading of the same or a higher level. `hideMatched` drops the heading itself, keeping its content.
 
-### `render` — контракт рендеринга
+### `render` — the rendering contract
 
 ```go
 type Renderer interface {
@@ -66,57 +66,57 @@ func Blocks(r Renderer, blocks []markdown.Block)
 func HeadingSizePt(level int) float64
 ```
 
-Бэкенд реализует четыре метода, `render.Blocks` раскладывает по ним список блоков. `HeadingSizePt` — единая шкала размеров заголовков (18/16/14/13/12/11 pt), чтобы docx и pdf не расходились.
+A backend implements the four methods and `render.Blocks` dispatches the list of blocks to them. `HeadingSizePt` is the single scale of heading sizes (18/16/14/13/12/11 pt), so that docx and pdf do not drift apart.
 
-## Версионирование
+## Versioning
 
-Версия хранится в `versions.txt`. Push в `main` с новой версией запускает workflow, который проверяет тесты и создаёт релиз с тегом `vX.Y.Z` — это ровно тот формат, который нужен Go-модулю.
+The version lives in `versions.txt`. A push to `main` with a new version triggers the workflow, which runs the tests and creates a release tagged `vX.Y.Z` — exactly the format a Go module needs.
 
 ```sh
-make bump-patch   # или bump-minor / bump-major
+make bump-patch   # or bump-minor / bump-major
 ```
 
-Пока API не устоялся, серия остаётся `v0.x`: в нулевой мажорной версии ломающие изменения допустимы без суффикса `/v2` в module path.
+While the API is not settled, the series stays at `v0.x`: within the zero major version breaking changes are allowed without a `/v2` suffix in the module path.
 
-## Разработка
+## Development
 
 ```sh
-make build                        # компиляция всех пакетов
-make test                         # тесты
-make test-v                       # то же, с именами тестов
-make test-run T=TestParseInline   # один тест или маска
-make cover                        # покрытие + итоговый процент
+make build                        # compile every package
+make test                         # tests
+make test-v                       # the same, with test names
+make test-run T=TestParseInline   # a single test or a mask
+make cover                        # coverage + total percentage
 make vet
 make check                        # vet + test
 ```
 
-`make test-all` дополнительно прогоняет тесты в `../md-docx` и `../md-pdf`, если они склонированы рядом, — одна команда проверяет и библиотеку, и обоих потребителей.
+`make test-all` additionally runs the tests in `../md-docx` and `../md-pdf` if they are cloned next to this repository — a single command checks both the library and both of its consumers.
 
-Что где тестируется:
+What is tested where:
 
-- **здесь** — парсинг (`markdown`), фильтрация (`filter`), пайплайн (`mdlib`) и контракт рендеринга (`render`): то, что общее для всех потребителей;
-- **в md-docx и md-pdf** — конкретные рендереры (XML для Word, вывод fpdf) и сквозные тесты CLI: то, что у каждого своё.
+- **here** — parsing (`markdown`), filtering (`filter`), the pipeline (`mdlib`) and the rendering contract (`render`): everything shared by all consumers;
+- **in md-docx and md-pdf** — the concrete renderers (Word XML, fpdf output) and the end-to-end CLI tests: everything specific to each of them.
 
-Потребители, которым нужно править библиотеку и CLI одновременно, подключают локальную копию через `go.work` — см. `make configure` в md-docx и md-pdf.
+Consumers that need to change the library and the CLI at the same time wire in a local copy through `go.work` — see `make configure` in md-docx and md-pdf.
 
-## Пакет для ручного переноса
+## Package for manual transfer
 
-`make pack` собирает библиотеку в виде **файлового модуль-прокси** — того же формата, что отдаёт `proxy.golang.org`:
+`make pack` builds the library as a **file-based module proxy** — the same format `proxy.golang.org` serves:
 
 ```sh
 make pack
-# dist/md-libs-0.1.0-proxy.tar.gz
+# dist/md-libs-0.1.1-proxy.tar.gz
 ```
 
-Внутри — `github.com/dimkarp93/md-libs/@v/` с файлами `v0.1.0.zip`, `v0.1.0.mod`, `v0.1.0.info` и `list`. Это позволяет собирать зависимый проект против обычного `require github.com/dimkarp93/md-libs v0.1.0` — **без `replace` и без правки `go.mod`**:
+Inside is `github.com/dimkarp93/md-libs/@v/` with the files `v0.1.1.zip`, `v0.1.1.mod`, `v0.1.1.info` and `list`. This makes it possible to build a dependent project against a plain `require github.com/dimkarp93/md-libs v0.1.1` — **without `replace` and without editing `go.mod`**:
 
 ```sh
-tar -xzf md-libs-0.1.0-proxy.tar.gz -C /opt
+tar -xzf md-libs-0.1.1-proxy.tar.gz -C /opt
 cd ../md-docx
 GOFLAGS=-mod=mod GOPROXY=file:///opt/proxy GOSUMDB=off go build ./...
 ```
 
-Так собирается проект, у которого нет других внешних зависимостей (md-docx) или все они уже в кэше модулей. Если остальные зависимости нужно тянуть из сети (md-pdf зависит от `fpdf`), добавьте сеть в цепочку прокси и выключайте sumdb **точечно**:
+That is how a project builds when it has no other external dependencies (md-docx) or when all of them are already in the module cache. If the remaining dependencies have to be fetched from the network (md-pdf depends on `fpdf`), add the network to the proxy chain and disable sumdb **selectively**:
 
 ```sh
 GOFLAGS=-mod=mod \
@@ -125,13 +125,17 @@ GONOSUMDB='github.com/dimkarp93/*' \
 go build ./...
 ```
 
-- `GOSUMDB=off` / `GONOSUMDB` обязателен, пока модуль не опубликован: иначе Go пойдёт в `sum.golang.org` и получит 404. Глобальный `GOSUMDB=off` при этом ломает проверку остальных модулей, скачиваемых из сети, — поэтому в смешанном сценарии нужен именно `GONOSUMDB`.
-- **Не используйте `GOPRIVATE`**: он попутно выставляет `GONOPROXY`, и Go пойдёт за md-libs напрямую в GitHub мимо файлового прокси.
-- `GOFLAGS=-mod=mod` нужен, чтобы Go дописал `go.sum`; после этого обычная сборка работает и без него.
-- Если в проекте включён workspace (`go.work`), добавьте `GOWORK=off` — иначе он перекроет прокси.
+- `GOSUMDB=off` / `GONOSUMDB` is mandatory while the module is not published: otherwise Go goes to `sum.golang.org` and gets a 404. A global `GOSUMDB=off` breaks verification of the other modules downloaded from the network, so a mixed scenario needs `GONOSUMDB` specifically.
+- **Do not use `GOPRIVATE`**: it also sets `GONOPROXY`, and Go will fetch md-libs straight from GitHub, bypassing the file proxy.
+- `GOFLAGS=-mod=mod` is needed so that Go writes `go.sum`; after that a normal build works without it.
+- If the project has a workspace enabled (`go.work`), add `GOWORK=off` — otherwise it overrides the proxy.
 
-Отличие от `make configure` в CLI: `configure` подсовывает библиотеку с диска через `go.work` и удобен, когда обе части правятся одновременно; `pack` даёт самодостаточный артефакт с конкретной версией — для машины без доступа к репозиторию.
+How this differs from `make configure` in the CLIs: `configure` feeds in the library from disk through `go.work` and is handy when both parts are edited at once; `pack` produces a self-contained artifact with a specific version — for a machine without access to the repository.
 
-Пакет собирается из рабочего дерева как есть, поэтому запускайте `make pack` на чистом дереве: содержимое zip определяет контрольную сумму в `go.sum`, и она должна совпасть с той, что позже посчитает GitHub для тега `vX.Y.Z`.
+The package is built from the working tree as is, so run `make pack` on a clean tree: the contents of the zip determine the checksum in `go.sum`, and it has to match the one GitHub computes later for the `vX.Y.Z` tag.
 
-Один внешний ресурс всё же нужен: `go.mod` объявляет `go 1.26.1`, и Go докачивает такой toolchain как модуль. На машине без сети он должен быть уже установлен (либо соберите с `GOTOOLCHAIN=local` достаточно свежим Go).
+One external resource is still needed: `go.mod` declares `go 1.26.1`, and Go downloads such a toolchain as a module. On a machine without network access it has to be installed already (or build with `GOTOOLCHAIN=local` using a recent enough Go).
+
+## License
+
+[MIT](LICENSE)

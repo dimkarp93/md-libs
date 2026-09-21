@@ -17,13 +17,13 @@ test-v:
 	go test -v ./...
 
 test-run:
-	@test -n "$(T)" || { echo "укажите тест: make test-run T=TestParseInline"; exit 1; }
+	@test -n "$(T)" || { echo "specify a test: make test-run T=TestParseInline"; exit 1; }
 	go test -v -run '$(T)' ./...
 
 cover:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out | tail -1
-	@echo "детальный отчёт: go tool cover -html=coverage.out"
+	@echo "detailed report: go tool cover -html=coverage.out"
 
 check: vet test
 
@@ -51,20 +51,20 @@ pack: build test
 	rm -rf $(DIST)/stage
 	tar -czf $(DIST)/md-libs-$(VERSION)-proxy.tar.gz -C $(DIST) proxy
 	@echo
-	@echo "Пакет: $(DIST)/md-libs-$(VERSION)-proxy.tar.gz  ($(MODULE) $(TAG))"
+	@echo "Package: $(DIST)/md-libs-$(VERSION)-proxy.tar.gz  ($(MODULE) $(TAG))"
 	@echo
-	@echo "Как использовать на другой машине (в репозитории, который зависит от md-libs):"
+	@echo "How to use it on another machine (inside a repository that depends on md-libs):"
 	@echo "  tar -xzf md-libs-$(VERSION)-proxy.tar.gz -C /opt"
 	@echo
-	@echo "  все прочие зависимости уже в кэше:"
+	@echo "  every other dependency is already in the cache:"
 	@echo "    GOFLAGS=-mod=mod GOPROXY=file:///opt/proxy GOSUMDB=off go build ./..."
 	@echo
-	@echo "  остальное тянется из сети:"
+	@echo "  the rest is fetched from the network:"
 	@echo "    GOFLAGS=-mod=mod GOPROXY=file:///opt/proxy,https://proxy.golang.org,direct \\"
 	@echo "    GONOSUMDB='github.com/dimkarp93/*' go build ./..."
 	@echo
-	@echo "Отключение sumdb обязательно: модуль ещё не в sum.golang.org. GOPRIVATE не подходит —"
-	@echo "он выставляет GONOPROXY и уводит go мимо файлового прокси. Если есть go.work — GOWORK=off."
+	@echo "Disabling sumdb is mandatory: the module is not in sum.golang.org yet. GOPRIVATE is not suitable —"
+	@echo "it also sets GONOPROXY and takes go past the file proxy. If there is a go.work — GOWORK=off."
 
 clean:
 	rm -rf $(DIST)
