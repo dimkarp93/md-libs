@@ -97,7 +97,7 @@ What is tested where:
 - **here** — parsing (`markdown`), filtering (`filter`), the pipeline (`mdlib`) and the rendering contract (`render`): everything shared by all consumers;
 - **in md-docx and md-pdf** — the concrete renderers (Word XML, fpdf output) and the end-to-end CLI tests: everything specific to each of them.
 
-Consumers that need to change the library and the CLI at the same time wire in a local copy through `go.work` — see `make configure` in md-docx and md-pdf.
+md-docx and md-pdf vendor this library: to use a change in them, publish a new version with a `vX.Y.Z` tag and run `go get` + `make vendor` in the consumer.
 
 ## Package for manual transfer
 
@@ -130,7 +130,7 @@ go build ./...
 - `GOFLAGS=-mod=mod` is needed so that Go writes `go.sum`; after that a normal build works without it.
 - If the project has a workspace enabled (`go.work`), add `GOWORK=off` — otherwise it overrides the proxy.
 
-How this differs from `make configure` in the CLIs: `configure` feeds in the library from disk through `go.work` and is handy when both parts are edited at once; `pack` produces a self-contained artifact with a specific version — for a machine without access to the repository.
+`pack` produces a self-contained artifact with a specific version — for a machine without access to the repository.
 
 The package is built from the working tree as is, so run `make pack` on a clean tree: the contents of the zip determine the checksum in `go.sum`, and it has to match the one GitHub computes later for the `vX.Y.Z` tag.
 
