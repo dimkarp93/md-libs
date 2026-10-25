@@ -138,4 +138,4 @@ One external resource is still needed: `go.mod` declares `go 1.26.1`, and Go dow
 
 ## License
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE)
